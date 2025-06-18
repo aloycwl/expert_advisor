@@ -1,0 +1,31 @@
+//@version=5
+indicator("AC-2")
+a=#ff0000
+C=close, _h=plot.style_histogram
+
+i1=input(title='Impulse MACD',defval=true)
+EM(_p,_l)=>
+    _a=2/(_l+1)
+    _s=0.0
+    _s:=_a*_p+(1-_a)*nz(_s[1])
+SM(_p,_l)=>
+    _s=0.0
+    for i=0 to _l-1
+        _s+=_p[i]/_l
+MM(_s,_l)=>
+    _a=0.0
+    _a:=na(_a[1])?SM(_s,_l):(_a[1]*(_l-1)+_s)/_l
+hi=MM(high,34)
+lo=MM(low,34)
+mi=EM(hlc3,34)+EM(hlc3,34)-EM(EM(hlc3,34),34)
+md=(mi>hi)?(mi-hi):(mi<lo)?(mi-lo):0
+sb=SM(md,9)
+plot(i1?md:na,color=hlc3>mi?hlc3>hi?#32cd32:#00ff00:hlc3<lo?a:#ffa500,style=_h,linewidth=2)
+plot(i1?md-sb:na,color=#7777ff,style=_h,linewidth=2)
+plot(i1?sb:na,color=#800000,linewidth=2)
+
+i2=input(title='Moving Average Convergence/Divergence (MACD)',defval=true)
+macd=EM(C,12)-EM(C,16)
+signal=EM(macd,9)
+h=(macd-signal)*10
+plot(i2?h:na,style=plot.style_columns,color=h>=0?h[1]<h?color.new(#269b9a,60):color.new(#b2dfdb,60):h[1]<h?color.new(#ffcdd2,60):color.new(#ff5252,60))

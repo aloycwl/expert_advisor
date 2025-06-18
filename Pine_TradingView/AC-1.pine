@@ -1,0 +1,108 @@
+//@version=5
+indicator(title="AC-1", overlay=true)
+a=#ffffff, c=#cccccc, d=#ff0000, e=#00ff00, f=#ffff00
+C=close
+
+i1=input(title='Exponential Moving Average (EMA)',defval=true)
+EM(_l)=>
+    _a=2/(_l+1)
+    _s=0.0
+    _s:=_a*C+(1-_a)*nz(_s[1])
+plot(i1?EM(21):na,color=d)
+plot(i1?EM(50):na,color=f)
+plot(i1?EM(200):na,color=a)
+
+i1a=input(title='EMA Extra',defval=false)
+plot(i1a?EM(5):na,color=#00ff40)
+plot(i1a?EM(100):na,color=#ffff88)
+
+i2=input(title='Bollinger Band (BB)',defval=true)
+SM(_p)=>
+    _s=0.0
+    for i=0 to 19
+        _s+=_p[i]/20
+stdDev=2*math.sqrt(SM(math.pow(C,2))-math.pow(math.sum(C,20),2)/400)
+sma=SM(C)
+plot(i2?sma+stdDev:na)
+plot(i2?sma-stdDev:na)
+
+i3=input(title='Parabolic SAR',defval=true)
+SA()=>
+	var float _r=na
+	var float _m=na
+	var float _a=na
+	var bool _b=na
+	bool _f=false
+	if bar_index==1
+		if C>C[1]
+			_b:=true
+			_m:=high
+			_r:=low[1]
+		else
+			_b:=false
+			_m:=low
+			_r:=high[1]
+		_f:=true
+		_a:=0.02
+	_r:=_r+_a*(_m-_r)
+	if _b
+		if _r>low
+			_f:=true
+			_b:=false
+			_r:=math.max(high,_m)
+			_m:=low
+			_a:=0.02
+	else
+		if _r<high
+			_f:=true
+			_b:=true
+			_r:=math.min(low,_m)
+			_m:=high
+			_a:=0.02
+	if not _f
+		if _b
+			if high>_m
+				_m:=high
+				_a:=math.min(_a+0.02,0.2)
+		else
+			if low<_m
+				_m:=low
+				_a:=math.min(_a+0.02,0.2)
+	if _b
+		_r:=math.min(_r,low[1])
+		if bar_index>1
+			_r:=math.min(_r,low[2])
+	else
+		_r:=math.max(_r,high[1])
+		if bar_index>1
+			_r:=math.max(_r,high[2])
+	_r
+plot(i3?SA():na,style=plot.style_cross,color=c)
+
+i4=input(title='Pivot',defval=true)
+drawLabel(_p,_s) =>
+    if not na(_p) and i4
+        label.new(bar_index[10],_p,str.tostring(_p,format.mintick),style=_s,color=color.new(a,80),textcolor=c)
+drawLabel(ta.pivothigh(10,10),label.style_label_down)
+drawLabel(ta.pivotlow(10,10),label.style_label_up)
+
+i5=input(title='DeMark',defval=true)
+uc=0, dc=0
+for i=0 to 9-1 by 1
+    uc+=(nz(C[i])>nz(C[i+4])?1:0)
+    dc+=(nz(C[i])<nz(C[i+4])?1:0)
+drp=dc==9?1:uc==9?-1:0
+plotshape(i5?ta.crossover(drp,0):na,'',shape.labelup,location.belowbar,e)
+plotshape(i5?ta.crossunder(drp,0):na,'',shape.labeldown,location.abovebar,d)
+
+i6=input(title='Ichimoku Cloud',defval=false)
+dc(_l)=>(ta.lowest(_l)+ta.highest(_l))/2
+l1=(dc(9)+dc(26))/2
+l2=dc(52)
+plot(i6?dc(9):na,color=#2962FF)
+plot(i6?dc(26):na,color=#b71c1c)
+plot(i6?C:na,offset=-25,color=#43a047)
+fill(plot(i6?l1:na,offset=25,color=#a5d6a7),plot(i6?l2:na,offset=25,color=#ef9a9a),color=l1>l2?color.new(#43a047,90):color.new(#f44336,90))
+
+i7=input(title='Volume',defval=false)
+plot(i7?volume:na,style=plot.style_columns,color=open>C?#b03838:#008060)
